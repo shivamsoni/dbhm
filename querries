@@ -1,0 +1,285 @@
+.h
+————————
+@property(strong,nonatomic)DataBaseFile *DBHandler;
+
+
+.m
+—————————————————
+
+self.DBHandler = [[DataBaseFile alloc] init];
+    [self.DBHandler CopyDatabaseInDevice];
+
+#pragma mark - Get Cart and Crown Data from Database
+
+-(void) getRecordFromCart
+{
+    
+    NSString *selectQuery = [NSString stringWithFormat:@"select * from CartItem where userId=%@ order by product_id asc",userId];
+    self.lblTotalValue.text = @"";
+    //NSInteger tempSum = 0;
+    
+    self.KitArr = [self.DBHandler selectAllDataFromTablewithQuery:selectQuery ofColumn:8];
+    for (NSMutableArray *arr in self.KitArr)
+    {
+//        NSInteger temp = 0;
+//        temp = [[arr objectAtIndex:5] integerValue];
+//        tempSum += temp;
+        // Kit
+        if ([[arr objectAtIndex:3] isEqualToString:@"14"])
+        {
+            introKitCellPrice = [[arr objectAtIndex:7] integerValue];
+        }
+        //Assorted Kit
+        if ([[arr objectAtIndex:3] isEqualToString:@"15"])
+        {
+            assortedKitCellPrice = [[arr objectAtIndex:7] integerValue];
+        }
+    }
+    //self.lblTotalValue.text = [NSString stringWithFormat:@"\u20B9 %ld", tempSum];
+    //getGrandTotal = tempSum;
+    
+    if (self.KitArr.count>0) {
+        
+        [self setCartFrame];
+        [self.KitTableView reloadData];
+    }
+    
+    
+    
+    selectQuery = [NSString stringWithFormat:@"select * from CrownKit where user_Id=%@ order by product_id asc",userId];
+    
+    
+    self.CrownKitArr = [self.DBHandler selectAllDataFromTablewithQuery:selectQuery ofColumn:9];
+    
+    if (self.CrownKitArr.count>0)
+    {
+        crownKitCellPrice = 0;
+        for (NSMutableArray * arrCrown in self.CrownKitArr)
+        {
+            crownKitCellPrice += [[arrCrown objectAtIndex:7] integerValue];
+        }
+        
+        [self.kitCollectionView reloadData];
+    }
+    
+    [self setCartFrame];
+    if (self.KitArr.count == 0 && self.CrownKitArr.count == 0)
+        self.emptycartview.hidden=false;
+    
+}
+
+-(void)StoreCartItemInDatabase
+{
+    if (![self.updateQueryIntroKit isEqualToString:@""]) {
+        [self.DBHandler UpdateDataWithQuesy:self.updateQueryIntroKit];
+        
+    }
+    if (![self.updateQueryAssortedKit isEqualToString:@""]) {
+        [self.DBHandler UpdateDataWithQuesy:self.updateQueryAssortedKit];
+        
+    }
+    
+    [self dismissViewControllerAnimated:YES completion:nil];
+    
+    
+    
+}
+
+
+
+#pragma mark - Delete cart or crown Item from Cart
+
+-(IBAction)CrownKitDeleteClicked:(id)sender
+{
+    CrownCollectionViewCell *cell = (CrownCollectionViewCell *)[[[[sender superview] superview] superview]superview];
+    
+    NSString *str = cell.TotalP.text;
+    NSString *str2 = [str stringByReplacingOccurrencesOfString:@"[^0-9]" withString:@"" options:NSRegularExpressionSearch range:NSMakeRange(0, [str length])];
+    crownKitCellPrice -= [str2 integerValue];
+    proIDFroCrown = cell.productID;
+    introKitCellPrice = 0;
+    assortedKitCellPrice = 0;
+    //  update CartItem set qty=%ld,unit_price=%ld,total_price=%ld  where product_id=%d
+    UIAlertView *alert=[[UIAlertView alloc]initWithTitle:@"Remove Product" message:@"Want to remove this product from cart?" delegate:self cancelButtonTitle:@"NO" otherButtonTitles:@"YES", nil];
+    [alert setTag:2];
+    [alert show];
+//    [self.kitCollectionView reloadData];
+//    [self.KitTableView reloadData];
+    
+}
+
+-(IBAction)KitDeleteClicked:(id)sender
+{
+    
+    IntroKitTableViewCell *cell = (IntroKitTableViewCell *)[[[[sender superview] superview] superview]superview];
+    self.Pid = cell.productID;
+    NSString *str = cell.TotalPrice.text;
+    NSString *str2 = [str stringByReplacingOccurrencesOfString:@"[^0-9]" withString:@"" options:NSRegularExpressionSearch range:NSMakeRange(0, [str length])];
+    if ([cell.productID intValue] == 15)
+    {
+        assortedKitCellPrice -= [str2 integerValue];
+    }
+    else if ([cell.productID intValue] == 14)
+    {
+        introKitCellPrice -= [str2 integerValue];
+    }
+    crownKitCellPrice = 0;
+    UIAlertView *alert=[[UIAlertView alloc]initWithTitle:@"Remove Product" message:@"Want to remove this product from cart?" delegate:self cancelButtonTitle:@"NO" otherButtonTitles:@"YES", nil];
+    
+    [alert show];
+    
+    
+}
+
+-(void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    if (buttonIndex==0)
+    {
+        NSLog(@"NO");
+    }
+    
+    if (buttonIndex==1)
+    {
+        
+        NSString *DeleteQuery = [NSString stringWithFormat:@"delete from CartItem where product_id=%@",self.Pid];
+        [self.DBHandler DeleteDataWithQuesy:DeleteQuery];
+        
+        [self getRecordFromCart];
+    }
+    
+    if (alertView.tag==2)
+    {
+        if (buttonIndex == 1)
+        {
+            NSString *DeleteQuery = [NSString stringWithFormat:@"delete from CrownKit where crownKit_tag=%@",proIDFroCrown];
+            [self.DBHandler DeleteDataWithQuesy:DeleteQuery];
+            [self.proTagArray addObject:proIDFroCrown];
+            [self getRecordFromCart];
+            //[self.kitCollectionView reloadData];
+        }
+    }
+    
+}
+
+//Update
+#pragma mark - Methods for Slider View for quantity selection
+
+
+- (void)timeSlider:(AKSSegmentedSliderControl *)timeSlider didSelectPointAtIndex:(int)index
+{
+    
+    IntroKitTableViewCell *cell = (IntroKitTableViewCell *)[[[timeSlider superview] superview] superview];
+    NSLog(@"%d",index);
+    
+    self.price = cell.priceVal;
+    
+    self.unit= index+1;
+    long  totalP = self.price*(index+1);
+    
+    self.calPrice=totalP;
+    
+    NSLog(@"Total Value is %li",totalP);
+    cell.Qty.text= [NSString stringWithFormat:@" X %d QTY",index+1];
+    cell.TotalPrice.text =[NSString stringWithFormat:@"=\u20B9 %li",totalP];
+    
+    if (cell.indexpath.row==0) {
+        self.updateQueryIntroKit = [NSString stringWithFormat:@"update CartItem set qty=%ld,unit_price=%ld,total_price=%ld  where product_id=%d",self.unit,self.price,self.calPrice,[cell.productID intValue]];
+            introKitCellPrice = (introKitCellPrice - (introKitCellPrice - totalP));
+        [self.DBHandler UpdateDataWithQuesy:self.updateQueryIntroKit];
+    }
+    
+    if (cell.indexpath.row==1) {
+        self.updateQueryAssortedKit = [NSString stringWithFormat:@"update CartItem set qty=%ld,unit_price=%ld,total_price=%ld  where product_id=%d",self.unit,self.price,self.calPrice,[cell.productID intValue]];
+        assortedKitCellPrice = (assortedKitCellPrice - (assortedKitCellPrice - totalP));
+        [self.DBHandler UpdateDataWithQuesy:self.updateQueryAssortedKit];
+    }
+    [self calculateGrandTotal];
+}
+
+
+
+-(void)StoreCartItemInDatabase:(UIButton*)sender
+{
+    UIButton* button = (UIButton*)sender;
+    
+    
+    NSString *selectQuery = [NSString stringWithFormat:@"select count(*) from CartItem where product_id=%@",self.productId];
+    NSString *selectPriceQuery = [NSString stringWithFormat:@"select price_id from ProductPrice where product_id=%d",[self.productId intValue]];
+    NSString *totalcount = [self.dbHandler MathOperationInTable:selectQuery];
+    NSMutableArray *priceIDFromDBArray = [self.dbHandler selectAllDataWithSingleFieldTablewithQuery:selectPriceQuery];
+    
+    // CREATE TABLE CartItem (_id INTEGER PRIMARY KEY, product_id NUMERIC, product_name TEXT, qty NUMERIC, unit_price TEXT, total_price TEXT)
+    
+    //    @property(assign,nonatomic)long  unit;
+    //    @property(assign,nonatomic)long  calPrice;
+    int price_id = 0;
+    if ([self.productId intValue] == 14)
+    {
+        price_id = 16;// [[priceIDFromDBArray objectAtIndex:0] intValue];
+    }
+    else if ([self.productId intValue] == 15)
+    {
+        price_id = 24;// [[priceIDFromDBArray lastObject] intValue];
+    }
+    
+    
+    
+    if ([totalcount isEqualToString:@"0"]) {
+        NSString *insertQuery = [NSString stringWithFormat:@"insert into CartItem (product_id,userId,price_id,product_name,qty,unit_price,total_price) values (%d,'%@',%d,'%@',%ld,%ld,'%ld')",[self.productId intValue],userId,price_id,self.lblName.text,self.unit,self.price,self.calPrice];
+        
+        [self.dbHandler insertDataWithQuesy:insertQuery];
+        [self.view makeToast:@"Added to Cart..."];
+        
+        NSString *countQuerystr =[NSString stringWithFormat:@"select count(*) from CartItem where userId=%@",userId];
+        NSString *countStr = [self.dbHandler MathOperationInTable:countQuerystr];
+        barMenu.badgeValue=countStr;
+        
+        if (button.selected== YES)
+        {
+            
+            self.intialcartimg.image=[UIImage imageNamed:@"whitecartborder"];
+            self.intialcartimg.image = [self.intialcartimg.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+            [self.intialcartimg setTintColor:self.bgColor];
+            button.selected=NO;
+            
+        }
+        else
+        {
+            UIImage * image = [UIImage imageNamed:@"whitecart"];
+            self.intialcartimg.image=image;
+            [self.intialcartimg setTintColor:self.bgColor];
+            self.intialcartimg.image = [self.intialcartimg.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+            
+            button.selected=YES;
+        }
+        //        self.cartBtnForTint.imageView.image = [theImageView.image imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+        //[self.cartBtnForTint setTintColor:[UIColor redColor]];
+        
+        //        UIImage *image = [[UIImage imageNamed:@"AddToCartAssorted"] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
+        //        [self.cartBtnForTint setImage:image forState:UIControlStateNormal];
+        //        self.cartBtnForTint.tintColor = [UIColor redColor];
+//        NSString *selectQ = [NSString stringWithFormat:@"select * from CartItem where userId=%@",userId];
+//        NSMutableArray *arrry = [self.dbHandler selectAllDataFromTablewithQuery:selectQ ofColumn:8];
+    }
+    else
+    {
+        NSString *updateQuery = [NSString stringWithFormat:@"update CartItem set userId=%@,price_id=%d,qty=%ld,unit_price=%ld,total_price=%ld  where product_id=%d",userId,price_id,self.unit,self.price,self.calPrice,[self.productId intValue]];
+        [self.dbHandler UpdateDataWithQuesy:updateQuery];
+        CartViewController *CartView = [[CartViewController alloc] init];
+        CartView =  [self.storyboard instantiateViewControllerWithIdentifier:@"CartViewController"];
+        UINavigationController *navc=[[UINavigationController alloc]initWithRootViewController:CartView];
+        navc.modalTransitionStyle=UIViewAnimationOptionTransitionCrossDissolve;
+        
+        
+        [self.navigationController presentViewController:navc animated:NO completion:^{
+            
+        }];
+        
+        NSString *selectQ = [NSString stringWithFormat:@"select * from CartItem where userId=%@",userId];
+        NSMutableArray *arrry = [[NSMutableArray alloc] init];
+        arrry = [self.dbHandler selectAllDataFromTablewithQuery:selectQ ofColumn:8];
+    }
+}
+
+
+
