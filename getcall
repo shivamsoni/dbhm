@@ -1,0 +1,42 @@
+#pragma mark - web service call for Get
+-(void)webServiceCallForKitDetail
+{
+    NSURL *url = [NSURL URLWithString:@"http://ws-srv-net.in.webmyne.com/Applications/KidsCrown/KidsCrownWS_V01/Services/Master.svc/json/FetchCurrentPricing"];
+    NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration];
+    NSURLSessionDataTask *dataTask = [session dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *response, NSError *error)
+    {
+        if (error == nil)
+        {
+            NSMutableDictionary *dictionary = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:&error];
+            NSMutableArray *data = [dictionary objectForKey:@"Data"];
+            
+            for (NSDictionary *dataArray in data)
+            {
+                if ([dataArray objectForKey:@"lstProductImg"])
+                {
+                    NSString *productName = [dataArray objectForKey:@"ProductName"];
+                    if ([productName isEqualToString:@"Intro Kit"])
+                    {
+                    NSMutableArray *lstProductImgArray = [dataArray objectForKey:@"lstProductImg"];
+                    for (NSDictionary *imgList in lstProductImgArray)
+                    {
+                        if (imgList != nil)
+                        {
+                            if ([imgList objectForKey:@"ImagePath"])
+                            {
+                                [self.imgCollection addObject:[imgList objectForKey:@"ImagePath"]];
+
+                            }
+                        }
+                    }
+                     [self.imgCollectionView reloadData];
+                    }
+                }
+            }
+        }
+    }];
+   
+    [dataTask resume];
+    
+}
