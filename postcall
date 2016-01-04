@@ -1,0 +1,133 @@
+#pragma mark- Method For Post Data
+-(void)updateMethod{
+    
+    NSUserDefaults *defaultuser = [NSUserDefaults standardUserDefaults];
+    NSString * userId = [defaultuser objectForKey:@"userId"];
+    
+    //POST request
+    
+    
+    NSError *error;
+    
+    NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:nil];
+    
+    NSString *strlUrl=[NSString stringWithFormat:@"%@%@",Kids_Crown_BASEURL,UPDATE];
+
+    
+    NSURL *url = [NSURL URLWithString:strlUrl];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+//    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url
+//                                                           cachePolicy:NSURLRequestUseProtocolCachePolicy
+//                                                       timeoutInterval:60.0];
+    
+    [request addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    [request addValue:@"application/json" forHTTPHeaderField:@"Accept"];
+    
+    [request setHTTPMethod:@"POST"];
+    
+    NSString *fname=[NSString stringWithFormat:@"%@",self.txtFname.text];
+    
+    NSString *lname=[NSString stringWithFormat:@"%@",self.txtLname.text];
+    
+    NSString *uname=[NSString stringWithFormat:@"%@",self.txtUname.text];
+    
+    NSString *mno=[NSString stringWithFormat:@"%@",self.txtMobileNumber.text];
+    
+    NSString *email=[NSString stringWithFormat:@"%@",self.txtEmail.text];
+    
+    NSString *pwd=[NSString stringWithFormat:@"%@",self.txtPassword.text];
+    
+    NSString *clinicname=[NSString stringWithFormat:@"%@",self.txtClinicName.text];
+    
+    NSString *regno=[NSString stringWithFormat:@"%@",self.txtRegNumber.text];
+    
+    
+    
+    
+    NSDictionary *mapData = [[NSDictionary alloc] initWithObjectsAndKeys:
+                             clinicname,@"ClinicName",
+                             email,@"EmailID",
+                             fname,@"FirstName",
+                             lname,@"LastName",
+                             mno,@"MobileNo",
+                             pwd,@"Password",
+                             regno,@"RegistrationNumber",
+                             uname,@"UserName",
+                             @"true",@"IsActive",
+                             @"N",@"LoginVia",
+                             @"true",@"IsDelete",
+                             @"i",@"MobileOS",
+                             @"5",@"PriorityID",
+                             @"1223372035854775808",@"Salutation",
+                             userId,@"UserID",
+                             @"2",@"UserRoleID",nil];
+    
+    
+    NSData *postData = [NSJSONSerialization dataWithJSONObject:mapData options:0 error:&error];
+    
+    [request setHTTPBody:postData];
+    
+    NSURLSessionDataTask *postTask=[session dataTaskWithRequest:request];
+    
+    [postTask resume];
+//    NSURLSessionDataTask *postDataTask = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+//        
+//        
+//        if (error== nil)
+//        {
+//            NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:nil];
+//            
+//            NSString *responseCode =  [NSString stringWithFormat:@"%@",[json objectForKey:@"ResponseCode"]];
+//            
+//            if ([responseCode isEqualToString:@"1"]) {
+//                
+//               [self.view makeToast:[json objectForKey:@"ResponseMessage"]];
+//               // [self CallNewController];
+//                }
+//            else
+//            {
+//                NSString *msg=[json objectForKey:@"ResponseMessage"];
+//                [self.view makeToast:msg];
+//            }
+//            
+//            
+//            NSLog(@"%@",json.description);
+//           // [self.view makeToast:json.description];
+//            [SVProgressHUD dismiss];
+//
+//            
+////            NSLog(@"%@",json.description);
+//          //  [self.view makeToast:json.description];
+//
+//        }
+//        
+//        else
+//        {
+//            NSLog(@"%@",error.description);
+//           //[self.view makeToast:error.localizedDescription];
+//            [self.view makeToast:error.description];
+//            
+//        }
+//
+//    }];
+//    [SVProgressHUD dismiss];
+//    [postDataTask resume];
+//    
+  }
+
+
+#pragma mark - Fetch User Data
+
+-(void) sendHTTPGet
+{
+    
+    NSString *uid=[[NSUserDefaults standardUserDefaults]objectForKey:@"userId"];
+    NSString *urlstr = [NSString stringWithFormat:@"%@%@/%@",Kids_Crown_BASEURL,FETCHDETAIL,uid];
+    
+    NSURL *url = [NSURL URLWithString:urlstr];
+    
+    
+    [self.req GetRequestwithDelegate:self andUrl:url];
+
+}
